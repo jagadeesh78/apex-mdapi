@@ -657,6 +657,7 @@ public with sharing class MetadataServiceExamples
         customSite.siteTemplate = 'SiteTemplate';
         customSite.siteType = 'Visualforce';
         customSite.clickjackProtectionLevel = 'AllowAllFraming';
+        customSite.requireHttps = true;
         MetadataService.MetadataPort service = createService();
         List<MetadataService.SaveResult> results =
             service.createMetadata(
@@ -1531,6 +1532,75 @@ public with sharing class MetadataServiceExamples
             System.debug(fileProperty.fullName);
     }
 
+
+	/**
+	 * Method cloneReport(String sFolderApiName, String sReportApiName, String tFolderApiName, String tReportApiName)
+	 * @param sFolderApiName: api name of the (source) folder of the report to clone
+	 * @param sReportApiName: api name of the (source) report to clone
+	 * @param tFolderApiName: api name of the (target) folder to create the cloned report in
+	 * @param tReportApiName: api name of the (target) cloned report 
+	 */
+	public static void cloneReport(String sFolderApiName, String sReportApiName, String tFolderApiName, String tReportApiName) {
+	    MetadataService.MetadataPort service = new MetadataService.MetadataPort();
+	    service.SessionHeader = new MetadataService.SessionHeader_element();
+	    service.SessionHeader.sessionId = UserInfo.getSessionId();
+	
+	    // Get the report to clone
+	    MetadataService.Report reportToClone = (MetadataService.Report) service.readMetadata('Report', new String[] { sFolderApiName+'/'+sReportApiName }).getRecords()[0];
+	
+	    // Instanciate a new one to attribute the same metadata from the report to clone
+	    MetadataService.Report apexReport = new MetadataService.Report();
+	    // Set the cloned report properties from parameters and the source report
+	    apexReport.name = reportToClone.name + ' Clone';
+	    apexReport.fullName = tFolderApiName + '/' + tReportApiName;
+	    apexReport.reportType = reportToClone.reportType;
+	    apexReport.description = reportToClone.description;
+	    apexReport.format = reportToClone.format;
+	    apexReport.filter = reportToClone.filter;
+	    apexReport.showDetails = reportToClone.showDetails;
+	    apexReport.sortColumn = reportToClone.sortColumn;
+	    apexReport.sortOrder = reportToClone.sortOrder;
+	    apexReport.groupingsAcross = reportToClone.groupingsAcross;
+	    apexReport.groupingsDown = reportToClone.groupingsDown;
+	    apexReport.chart = reportToClone.chart;
+	    apexReport.timeFrameFilter = reportToClone.timeFrameFilter;
+	    apexReport.columns = reportToClone.columns;
+	
+	    // Create the report clone
+	    List<MetadataService.SaveResult> results = service.createMetadata(new MetadataService.Metadata[] { apexReport });
+	
+	    // Handle results
+	    handleSaveResults(results[0]);
+	}
+	
+    public static void updateDashboard()
+    {
+        MetadataService.MetadataPort service = createService();
+
+        // Read Dashboard
+        MetadataService.Dashboard dashboard =
+            (MetadataService.Dashboard) service.readMetadata('Dashboard',
+                new String[] { 'MyDashboards/MyDashboard' }).getRecords()[0];
+        System.debug('Name ' + dashboard.fullName);
+                
+        // Update Dashboard
+        dashboard.title = 'My updated dashboard';
+        dashboard.leftSection.components = new List<MetadataService.DashboardComponent>();
+        MetadataService.DashboardComponent newComponent = new MetadataService.DashboardComponent();
+        newComponent.autoselectColumnsFromReport = true;
+        newComponent.componentType = 'Table';
+        newComponent.displayUnits = 'Auto';
+        newComponent.drillEnabled = false;
+        newComponent.drillToDetailEnabled = false;
+        newComponent.indicatorHighColor = '#54C254';
+        newComponent.indicatorLowColor = '#C2C254';
+        newComponent.indicatorMiddleColor = '#C2C254';
+        newComponent.report = 'MyFolder/Accounts';
+        newComponent.sortBy = 'RowLabelAscending';
+        dashboard.leftSection.components.add(newComponent);
+        handleSaveResults(service.updateMetadata(new List<MetadataService.Metadata> { dashboard })[0]);
+    }    	
+	
     /**
      * Error occured processing component OrgPreference. create() not supported for OrgPreferenceSettings (FIELD_INTEGRITY_EXCEPTION). :-(
      **/
